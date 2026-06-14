@@ -24,6 +24,7 @@ export const learningApi = {
   submitQuiz: (payload) => api.post('/quiz/submit', payload),
   progress: () => api.get('/progress'),
   complete: (skill) => api.post('/progress/complete', { skill }),
+  bookmarks: () => api.get('/bookmarks'),
   bookmark: (lessonId) => api.post('/bookmarks/toggle', { lessonId }),
   saveNote: (payload) => api.put('/notes', payload),
   getNote: (skill) => api.get(`/notes/${encodeURIComponent(skill)}`)

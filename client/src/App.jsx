@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const Resume = lazy(() => import('./pages/resume/Resume'));
 const Roadmap = lazy(() => import('./pages/roadmap/Roadmap'));
 const Learning = lazy(() => import('./pages/learning/Learning'));
+const Bookmarks = lazy(() => import('./pages/bookmarks/Bookmarks'));
 const Progress = lazy(() => import('./pages/progress/Progress'));
 const Settings = lazy(() => import('./pages/settings/Settings'));
 const Admin = lazy(() => import('./pages/dashboard/Admin'));
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/resume" element={<Resume />} />
                 <Route path="/roadmap" element={<Roadmap />} />
                 <Route path="/learning/:skill?" element={<Learning />} />
+                <Route path="/bookmarks" element={<Bookmarks />} />
                 <Route path="/progress" element={<Progress />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/admin" element={<ProtectedRoute roles={['admin']}><Admin /></ProtectedRoute>} />

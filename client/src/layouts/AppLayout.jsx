@@ -1,4 +1,4 @@
-import { BookOpen, Brain, ChartNoAxesCombined, FileText, LayoutDashboard, LogOut, Map, Settings, Shield } from 'lucide-react';
+import { Bookmark, BookOpen, Brain, ChartNoAxesCombined, FileText, LayoutDashboard, LogOut, Map, Settings, Shield } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 
@@ -7,6 +7,7 @@ const baseNav = [
   { to: '/resume', label: 'Resume', icon: FileText },
   { to: '/roadmap', label: 'Roadmap', icon: Map },
   { to: '/learning', label: 'Learning', icon: BookOpen },
+  { to: '/bookmarks', label: 'Saved', icon: Bookmark },
   { to: '/progress', label: 'Progress', icon: ChartNoAxesCombined },
   { to: '/settings', label: 'Settings', icon: Settings }
 ];
@@ -67,8 +68,8 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white px-2 py-2 lg:hidden">
-        {baseNav.slice(0, 5).map(({ to, label, icon: Icon }) => (
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-slate-200 bg-white px-1 py-2 lg:hidden">
+        {baseNav.slice(0, 6).map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
