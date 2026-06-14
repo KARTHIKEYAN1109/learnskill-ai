@@ -1,6 +1,7 @@
 import Lesson from '../models/Lesson.js';
 import Bookmark from '../models/Bookmark.js';
 import aiService from '../services/aiService.js';
+import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { escapeRegex } from '../utils/stringUtils.js';
 
@@ -21,5 +22,7 @@ export const generateLesson = asyncHandler(async (req, res) => {
 
 export const getLesson = asyncHandler(async (req, res) => {
   const lesson = await Lesson.findById(req.params.id);
+  if (!lesson) throw new ApiError(404, 'Lesson not found');
+
   res.json({ lesson });
 });

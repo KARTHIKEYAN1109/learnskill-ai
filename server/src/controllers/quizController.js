@@ -1,6 +1,7 @@
 import Quiz from '../models/Quiz.js';
 import Progress from '../models/Progress.js';
 import aiService from '../services/aiService.js';
+import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { escapeRegex } from '../utils/stringUtils.js';
 
@@ -19,10 +20,16 @@ export const generateQuiz = asyncHandler(async (req, res) => {
 });
 
 export const submitQuiz = asyncHandler(async (req, res) => {
-  const { skill, answers } = req.body;
+  const skill = req.body.skill.trim();
+  const { answers } = req.body;
   const quiz = await Quiz.findOne({ skill: new RegExp(`^${escapeRegex(skill)}$`, 'i') });
-  const total = quiz?.questions.length || 0;
-  const score = quiz?.questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0) || 0;
+  if (!quiz) throw new ApiError(404, 'Quiz not found. Generate a quiz before submitting answers.');
+
+  const total = quiz.questions.length;
+  if (!total) throw new ApiError(422, 'Quiz has no questions');
+  if (answers.length !== total) throw new ApiError(400, `Expected ${total} answers`);
+
+  const score = quiz.questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0);
   const accuracy = total ? Math.round((score / total) * 100) : 0;
 
   const progress = await Progress.findOneAndUpdate(
