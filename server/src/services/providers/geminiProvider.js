@@ -66,29 +66,11 @@ const fallbackQuiz = (skill) => ({
 ----------------------------- */
 
 const getModel = () => {
-  console.log(
-    "AI_PROVIDER:",
-    process.env.AI_PROVIDER
-  );
-
-  console.log(
-    "GEMINI KEY EXISTS:",
-    !!process.env.GEMINI_API_KEY
-  );
-
   if (!process.env.GEMINI_API_KEY) {
-    console.log(
-      "NO GEMINI KEY -> FALLBACK"
-    );
-
     return null;
   }
 
   try {
-    console.log(
-      "MODEL CREATED"
-    );
-
     const genAI =
       new GoogleGenerativeAI(
         process.env.GEMINI_API_KEY
@@ -97,13 +79,7 @@ const getModel = () => {
     return genAI.getGenerativeModel({
       model: modelName,
     });
-  } catch (error) {
-    console.log(
-      "MODEL INIT ERROR"
-    );
-
-    console.log(error);
-
+  } catch {
     return null;
   }
 };
@@ -119,18 +95,10 @@ const generateJson = async (
   const model = getModel();
 
   if (!model) {
-    console.log(
-      "RETURNING FALLBACK"
-    );
-
     return fallback;
   }
 
   try {
-    console.log(
-      "CALLING GEMINI..."
-    );
-
     const result =
       await model.generateContent(
         prompt
@@ -139,23 +107,11 @@ const generateJson = async (
     const text =
       result.response.text();
 
-    console.log(
-      "GEMINI RESPONSE RECEIVED"
-    );
-
-    console.log(text);
-
     return parseJsonFromText(
       text,
       fallback
     );
-  } catch (error) {
-    console.log(
-      "GEMINI REQUEST FAILED"
-    );
-
-    console.log(error);
-
+  } catch {
     return fallback;
   }
 };
@@ -258,13 +214,7 @@ Rules:
 `);
 
       return result.response.text();
-    } catch (error) {
-      console.log(
-        "TUTOR ERROR:"
-      );
-
-      console.log(error);
-
+    } catch {
       return `Unable to contact Gemini. Please try again later.`;
     }
   },

@@ -4,11 +4,6 @@ import connectDB from './config/db.js';
 
 dotenv.config();
 
-console.log(
-  "GEMINI KEY:",
-  process.env.GEMINI_API_KEY
-);
-
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {

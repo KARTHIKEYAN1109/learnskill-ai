@@ -8,6 +8,7 @@ export const protect = async (req, _res, next) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
     if (!token) throw new ApiError(401, 'Authentication required');
+    if (!process.env.JWT_ACCESS_SECRET) throw new ApiError(500, 'Authentication is not configured');
 
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await User.findById(decoded.id).select('-passwordHash -refreshTokenHash');
@@ -16,7 +17,9 @@ export const protect = async (req, _res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    next(error.name === 'JsonWebTokenError' ? new ApiError(401, 'Invalid token') : error);
+    if (error.name === 'JsonWebTokenError') return next(new ApiError(401, 'Invalid token'));
+    if (error.name === 'TokenExpiredError') return next(new ApiError(401, 'Token expired'));
+    next(error);
   }
 };
 

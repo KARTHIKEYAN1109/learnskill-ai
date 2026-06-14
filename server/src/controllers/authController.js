@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { hashToken, sendRefreshCookie, signAccessToken, signRefreshToken } from '../utils/tokenUtils.js';
+import { clearRefreshCookie, hashToken, sendRefreshCookie, signAccessToken, signRefreshToken } from '../utils/tokenUtils.js';
 
 const authPayload = async (user, res) => {
   const accessToken = signAccessToken(user);
@@ -48,10 +48,20 @@ export const refresh = asyncHandler(async (req, res) => {
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  res.clearCookie('refreshToken');
-  if (req.user) {
-    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshTokenHash: 1 }, $inc: { tokenVersion: 1 } });
+  clearRefreshCookie(res);
+
+  const authHeader = req.headers.authorization;
+  const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+  if (accessToken && process.env.JWT_ACCESS_SECRET) {
+    try {
+      const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+      await User.findByIdAndUpdate(decoded.id, { $unset: { refreshTokenHash: 1 }, $inc: { tokenVersion: 1 } });
+    } catch {
+      // Cookie clearing should succeed even when the access token is missing or expired.
+    }
   }
+
   res.json({ message: 'Logged out' });
 });
 

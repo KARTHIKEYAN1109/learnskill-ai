@@ -19,7 +19,7 @@ router.post('/login', [
 ], validate, login);
 
 router.post('/refresh', refresh);
-router.post('/logout', protect, logout);
+router.post('/logout', logout);
 router.get('/me', protect, me);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: '/login' }), googleCallback);
