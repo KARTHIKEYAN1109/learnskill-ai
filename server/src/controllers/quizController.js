@@ -9,14 +9,16 @@ export const generateQuiz = asyncHandler(async (req, res) => {
   const skill = req.body.skill.trim();
   let quiz = await Quiz.findOne({ skill: new RegExp(`^${escapeRegex(skill)}$`, 'i') });
   let cached = true;
+  let ai = null;
 
   if (!quiz) {
     cached = false;
     const generated = await aiService.generateQuiz(skill);
-    quiz = await Quiz.create({ skill, questions: generated.questions });
+    ai = generated.ai;
+    quiz = await Quiz.create({ skill, questions: generated.data.questions });
   }
 
-  res.json({ quiz, cached });
+  res.json({ quiz, cached, ai });
 });
 
 export const submitQuiz = asyncHandler(async (req, res) => {

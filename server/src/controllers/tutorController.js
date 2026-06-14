@@ -8,10 +8,11 @@ export const askTutor = asyncHandler(async (req, res) => {
   const chronological = history.reverse();
 
   await TutorMessage.create({ user: req.user._id, skill, role: 'user', content: question });
-  const answer = await aiService.askTutor({ skill, question, history: chronological });
+  const generated = await aiService.askTutor({ skill, question, history: chronological });
+  const answer = generated.data;
   const assistant = await TutorMessage.create({ user: req.user._id, skill, role: 'assistant', content: answer });
 
-  res.json({ answer, message: assistant });
+  res.json({ answer, message: assistant, ai: generated.ai });
 });
 
 export const getTutorHistory = asyncHandler(async (req, res) => {
