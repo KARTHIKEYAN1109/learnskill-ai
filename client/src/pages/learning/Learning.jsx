@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bookmark, Check, CheckCircle2, GraduationCap, Send, Sparkles, XCircle } from 'lucide-react';
+import { Bookmark, Check, CheckCircle2, GraduationCap, Save, Send, Sparkles, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import Skeleton from '../../components/Skeleton';
@@ -16,6 +16,7 @@ export default function Learning() {
   const [quizResult, setQuizResult] = useState(null);
   const [chat, setChat] = useState([]);
   const [question, setQuestion] = useState('');
+  const [note, setNote] = useState({ content: '', saved: '', loading: false, saving: false });
   const skill = useMemo(() => decodeURIComponent(routeSkill || progress?.currentSkill || path?.prioritySkills?.[0] || ''), [routeSkill, progress, path]);
 
   useEffect(() => {
@@ -35,6 +36,13 @@ export default function Learning() {
     setQuizResult(null);
     learningApi.lesson(skill).then(({ data }) => setLessonState({ lesson: data.lesson, loading: false, bookmarked: data.bookmarked }));
     learningApi.tutorHistory(skill).then(({ data }) => setChat(data.messages || [])).catch(() => {});
+    setNote({ content: '', saved: '', loading: true, saving: false });
+    learningApi.getNote(skill)
+      .then(({ data }) => {
+        const content = data.note?.content || '';
+        setNote({ content, saved: content, loading: false, saving: false });
+      })
+      .catch(() => setNote({ content: '', saved: '', loading: false, saving: false }));
   }, [skill]);
 
   if (!path && !skill) return <EmptyState title="No active skill" copy="Generate a roadmap from your resume before starting lessons." to="/resume" action="Analyze resume" />;
@@ -69,6 +77,17 @@ export default function Learning() {
   const complete = async () => {
     const { data } = await learningApi.complete(skill);
     setProgress(data.progress);
+  };
+
+  const saveNote = async (content = note.content) => {
+    setNote((current) => ({ ...current, saving: true }));
+    const { data } = await learningApi.saveNote({ skill, content });
+    const saved = data.note?.content || '';
+    setNote({ content: saved, saved, loading: false, saving: false });
+  };
+
+  const deleteNote = async () => {
+    await saveNote('');
   };
 
   return (
@@ -157,6 +176,34 @@ export default function Learning() {
             <button onClick={submitQuiz} disabled={Boolean(quizResult)} className="focus-ring mt-5 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-60">{quizResult ? 'Quiz Submitted' : 'Submit Quiz'}</button>
           </section>
         )}
+        <section className="page-band p-6">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700"><StickyNote size={16} /> Notes</p>
+              <h2 className="mt-3 text-xl font-semibold">Your notes for {skill}</h2>
+              <p className="mt-1 text-sm text-slate-500">Capture examples, reminders, and questions while you learn.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => saveNote()} disabled={note.loading || note.saving || note.content === note.saved} className="focus-ring inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                <Save size={16} />
+                {note.saving ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={deleteNote} disabled={note.loading || note.saving || !note.saved} className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
+                <Trash2 size={16} />
+                Delete
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={note.content}
+            onChange={(event) => setNote((current) => ({ ...current, content: event.target.value }))}
+            disabled={note.loading}
+            rows={7}
+            placeholder={note.loading ? 'Loading notes...' : 'Write a note for this skill'}
+            className="focus-ring mt-5 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 leading-6 text-slate-700 disabled:bg-slate-50"
+          />
+          <p className="mt-2 text-sm text-slate-500">{note.content === note.saved ? 'Saved' : 'Unsaved changes'}</p>
+        </section>
       </section>
       <aside className="page-band flex h-[720px] flex-col p-4">
         <h2 className="px-2 text-sm font-semibold uppercase text-slate-500">AI Tutor</h2>
