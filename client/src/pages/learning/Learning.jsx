@@ -111,8 +111,12 @@ export default function Learning() {
       </section>
       <aside className="page-band flex h-[720px] flex-col p-4">
         <h2 className="px-2 text-sm font-semibold uppercase text-slate-500">AI Tutor</h2>
-        <div className="mt-3 flex-1 space-y-3 overflow-y-auto pr-1">
-          {chat.map((msg, index) => <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 bg-slate-100 text-slate-700'}`}>{msg.content}</div>)}
+        <div className="mt-3 flex-1 space-y-4 overflow-y-auto pr-1">
+          {chat.map((msg, index) => (
+            <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm leading-6 ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 border border-slate-200 bg-slate-50 text-slate-700'}`}>
+              {msg.role === 'assistant' ? <TutorMessage content={msg.content} /> : <p className="whitespace-pre-line">{msg.content}</p>}
+            </div>
+          ))}
         </div>
         <div className="mt-3 flex gap-2">
           <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && ask()} placeholder={`Ask about ${skill}`} className="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-3" />
@@ -129,5 +133,66 @@ function LessonBlock({ title, content }) {
       <h2 className="text-lg font-semibold">{title}</h2>
       <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">{content}</p>
     </section>
+  );
+}
+
+function TutorMessage({ content }) {
+  const lines = String(content || '').split(/\r?\n/);
+  const numberedItems = [];
+  const blocks = [];
+
+  const flushNumberedItems = () => {
+    if (!numberedItems.length) return;
+    blocks.push({ type: 'numbered', items: [...numberedItems] });
+    numberedItems.length = 0;
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const numbered = trimmed.match(/^(\d+)[.)]\s+(.+)/);
+    const isPractice = /practice|task|exercise|try this/i.test(trimmed);
+
+    if (!trimmed) {
+      flushNumberedItems();
+      blocks.push({ type: 'space' });
+      return;
+    }
+
+    if (numbered) {
+      numberedItems.push({ number: numbered[1], text: numbered[2], practice: isPractice });
+      return;
+    }
+
+    flushNumberedItems();
+    blocks.push({ type: isPractice ? 'practice' : 'paragraph', text: trimmed });
+  });
+
+  flushNumberedItems();
+
+  return (
+    <div className="space-y-3">
+      {blocks.map((block, index) => {
+        if (block.type === 'space') return <div key={index} className="h-1" />;
+
+        if (block.type === 'numbered') {
+          return (
+            <ol key={index} className="space-y-2">
+              {block.items.map((item) => (
+                <li key={`${item.number}-${item.text}`} className={`grid grid-cols-[28px_1fr] gap-2 rounded-lg px-2 py-1.5 ${item.practice ? 'bg-amber-50 text-amber-900' : ''}`}>
+                  <span className={`grid h-6 w-6 place-items-center rounded-lg text-xs font-semibold ${item.practice ? 'bg-amber-200 text-amber-950' : 'bg-white text-slate-600'}`}>{item.number}</span>
+                  <span>{item.text}</span>
+                </li>
+              ))}
+            </ol>
+          );
+        }
+
+        if (block.type === 'practice') {
+          return <p key={index} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-medium text-amber-900">{block.text}</p>;
+        }
+
+        return <p key={index} className="whitespace-pre-wrap">{block.text}</p>;
+      })}
+    </div>
   );
 }
