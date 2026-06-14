@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bookmark, Check, GraduationCap, Send, Sparkles } from 'lucide-react';
+import { Bookmark, Check, CheckCircle2, GraduationCap, Send, Sparkles, XCircle } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import Skeleton from '../../components/Skeleton';
@@ -13,6 +13,7 @@ export default function Learning() {
   const [lessonState, setLessonState] = useState({ lesson: null, loading: true, bookmarked: false });
   const [quiz, setQuiz] = useState(null);
   const [answers, setAnswers] = useState({});
+  const [quizResult, setQuizResult] = useState(null);
   const [chat, setChat] = useState([]);
   const [question, setQuestion] = useState('');
   const skill = useMemo(() => decodeURIComponent(routeSkill || progress?.currentSkill || path?.prioritySkills?.[0] || ''), [routeSkill, progress, path]);
@@ -29,6 +30,9 @@ export default function Learning() {
   useEffect(() => {
     if (!skill) return;
     setLessonState((current) => ({ ...current, loading: true }));
+    setQuiz(null);
+    setAnswers({});
+    setQuizResult(null);
     learningApi.lesson(skill).then(({ data }) => setLessonState({ lesson: data.lesson, loading: false, bookmarked: data.bookmarked }));
     learningApi.tutorHistory(skill).then(({ data }) => setChat(data.messages || [])).catch(() => {});
   }, [skill]);
@@ -50,11 +54,14 @@ export default function Learning() {
   const generateQuiz = async () => {
     const { data } = await learningApi.quiz(skill);
     setQuiz(data.quiz);
+    setAnswers({});
+    setQuizResult(null);
   };
 
   const submitQuiz = async () => {
     const ordered = quiz.questions.map((_, index) => answers[index]);
-    await learningApi.submitQuiz({ skill, answers: ordered });
+    const { data } = await learningApi.submitQuiz({ skill, answers: ordered });
+    setQuizResult({ ...data, answers: ordered });
     const progressRes = await learningApi.progress();
     setProgress(progressRes.data.progress);
   };
@@ -94,18 +101,60 @@ export default function Learning() {
         </article>
         {quiz && (
           <section className="page-band p-6">
-            <h2 className="text-xl font-semibold">Quiz: {quiz.skill}</h2>
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+              <div>
+                <h2 className="text-xl font-semibold">Quiz: {quiz.skill}</h2>
+                {quizResult && <p className="mt-1 text-sm text-slate-500">Answer review is ready. Revisit each question below.</p>}
+              </div>
+              {quizResult && (
+                <div className="rounded-lg bg-slate-950 px-5 py-3 text-white">
+                  <p className="text-xs font-medium uppercase text-blue-100">Score</p>
+                  <p className="mt-1 text-2xl font-semibold">{quizResult.score}/{quizResult.total} <span className="text-base text-slate-300">({quizResult.accuracy}%)</span></p>
+                </div>
+              )}
+            </div>
             <div className="mt-5 space-y-5">
               {quiz.questions.map((item, index) => (
                 <div key={item.question} className="rounded-lg border border-slate-200 p-4">
-                  <p className="font-medium">{index + 1}. {item.question}</p>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {item.options.map((option) => <button key={option} onClick={() => setAnswers({ ...answers, [index]: option })} className={`rounded-lg border px-3 py-2 text-left text-sm ${answers[index] === option ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200'}`}>{option}</button>)}
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium">{index + 1}. {item.question}</p>
+                    {quizResult && (
+                      quizResult.answers[index] === item.answer
+                        ? <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700"><CheckCircle2 size={14} /> Correct</span>
+                        : <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><XCircle size={14} /> Review</span>
+                    )}
                   </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {item.options.map((option) => {
+                      const selected = answers[index] === option;
+                      const submittedAnswer = quizResult?.answers[index];
+                      const isCorrectAnswer = quizResult && option === item.answer;
+                      const isWrongAnswer = quizResult && submittedAnswer === option && option !== item.answer;
+                      const optionClass = isCorrectAnswer
+                        ? 'border-green-300 bg-green-50 text-green-800'
+                        : isWrongAnswer
+                          ? 'border-red-300 bg-red-50 text-red-800'
+                          : selected
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                            : 'border-slate-200';
+
+                      return (
+                        <button key={option} disabled={Boolean(quizResult)} onClick={() => setAnswers({ ...answers, [index]: option })} className={`rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-default ${optionClass}`}>
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {quizResult && (
+                    <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <p><span className="font-medium">Your answer:</span> {quizResult.answers[index] || 'No answer selected'}</p>
+                      <p className="mt-1"><span className="font-medium">Correct answer:</span> {item.answer}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-            <button onClick={submitQuiz} className="focus-ring mt-5 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white">Submit Quiz</button>
+            <button onClick={submitQuiz} disabled={Boolean(quizResult)} className="focus-ring mt-5 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-60">{quizResult ? 'Quiz Submitted' : 'Submit Quiz'}</button>
           </section>
         )}
       </section>
