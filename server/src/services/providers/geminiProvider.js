@@ -1,7 +1,39 @@
+import '../../config/env.js';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { parseJsonFromText } from "../../utils/jsonUtils.js";
 
-const modelName = "gemini-1.5-flash";
+const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
+
+const buildMeta = ({ calledGemini = false, fallback = false, operation, reason = null } = {}) => ({
+  provider: 'gemini',
+  model: modelName,
+  operation,
+  apiKeyLoaded: Boolean(getApiKey()),
+  calledGemini,
+  fallback,
+  reason
+});
+
+const aiResult = (data, meta) => ({ data, ai: meta });
+
+const getApiKey = () => process.env.GEMINI_API_KEY?.trim();
+
+const classifyGeminiError = (error) => {
+  const status = error?.status || error?.response?.status;
+  const code = error?.code || error?.cause?.code;
+  const message = String(error?.message || '').toLowerCase();
+
+  if (status === 400) return 'invalid_request';
+  if (status === 401 || status === 403) return 'auth_failed';
+  if (status === 404) return 'model_not_found';
+  if (status === 429) return 'rate_limited';
+  if (status >= 500) return 'gemini_unavailable';
+  if (code === 'ENOTFOUND' || code === 'ECONNRESET' || code === 'ETIMEDOUT' || message.includes('fetch failed')) {
+    return 'network_error';
+  }
+
+  return 'request_failed';
+};
 
 /* -----------------------------
    FALLBACK DATA
@@ -61,26 +93,68 @@ const fallbackQuiz = (skill) => ({
   ],
 });
 
+const isStringArray = (value) => Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const validators = {
+  resume_analysis: (value) =>
+    value &&
+    isStringArray(value.skillsFound) &&
+    isStringArray(value.missingSkills) &&
+    hasText(value.recommendedTrack) &&
+    Number.isFinite(value.skillGapScore) &&
+    value.skillGapScore >= 0 &&
+    value.skillGapScore <= 100 &&
+    hasText(value.estimatedLearningTime) &&
+    isStringArray(value.prioritySkills),
+
+  lesson_generation: (value) =>
+    value &&
+    hasText(value.title) &&
+    hasText(value.explanation) &&
+    hasText(value.example) &&
+    hasText(value.exercise) &&
+    hasText(value.nextTopic),
+
+  quiz_generation: (value) =>
+    value &&
+    Array.isArray(value.questions) &&
+    value.questions.length > 0 &&
+    value.questions.every((question) =>
+      hasText(question.question) &&
+      isStringArray(question.options) &&
+      question.options.length === 4 &&
+      hasText(question.answer) &&
+      question.options.includes(question.answer)
+    )
+};
+
 /* -----------------------------
    GEMINI MODEL
 ----------------------------- */
 
 const getModel = () => {
-  if (!process.env.GEMINI_API_KEY) {
-    return null;
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
+    return { model: null, reason: 'missing_api_key' };
   }
 
   try {
     const genAI =
       new GoogleGenerativeAI(
-        process.env.GEMINI_API_KEY
+        apiKey
       );
 
-    return genAI.getGenerativeModel({
-      model: modelName,
-    });
+    return {
+      model: genAI.getGenerativeModel({
+        model: modelName,
+      }),
+      reason: null
+    };
   } catch {
-    return null;
+    return { model: null, reason: 'model_init_failed' };
   }
 };
 
@@ -90,29 +164,45 @@ const getModel = () => {
 
 const generateJson = async (
   prompt,
-  fallback
+  fallback,
+  operation
 ) => {
-  const model = getModel();
+  const { model, reason } = getModel();
 
   if (!model) {
-    return fallback;
+    return aiResult(fallback, buildMeta({ operation, fallback: true, reason }));
   }
 
   try {
-    const result =
+    const response =
       await model.generateContent(
-        prompt
+        {
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json'
+          }
+        }
       );
 
     const text =
-      result.response.text();
+      response.response.text();
 
-    return parseJsonFromText(
+    const parsed = parseJsonFromText(
       text,
-      fallback
+      null
     );
-  } catch {
-    return fallback;
+
+    if (!parsed) {
+      return aiResult(fallback, buildMeta({ operation, calledGemini: true, fallback: true, reason: 'invalid_json' }));
+    }
+
+    if (!validators[operation]?.(parsed)) {
+      return aiResult(fallback, buildMeta({ operation, calledGemini: true, fallback: true, reason: 'invalid_schema' }));
+    }
+
+    return aiResult(parsed, buildMeta({ operation, calledGemini: true }));
+  } catch (error) {
+    return aiResult(fallback, buildMeta({ operation, calledGemini: true, fallback: true, reason: classifyGeminiError(error) }));
   }
 };
 
@@ -143,7 +233,8 @@ Resume:
 
 ${resumeText}
 `,
-      fallbackResume
+      fallbackResume,
+      'resume_analysis'
     ),
 
   generateLesson: async (
@@ -169,7 +260,8 @@ Rules:
 - Short explanation
 - No markdown
 `,
-      fallbackLesson(skill)
+      fallbackLesson(skill),
+      'lesson_generation'
     ),
 
   askTutor: async ({
@@ -177,10 +269,13 @@ Rules:
     question,
     history,
   }) => {
-    const model = getModel();
+    const { model, reason } = getModel();
 
     if (!model) {
-      return `Let's simplify ${skill}. Start with the basic purpose, try a small project, and practice one concept at a time.`;
+      return aiResult(
+        `Let's simplify ${skill}. Start with the basic purpose, try a small project, and practice one concept at a time.`,
+        buildMeta({ operation: 'tutor_chat', fallback: true, reason })
+      );
     }
 
     try {
@@ -192,7 +287,7 @@ Rules:
           )
           .join("\n") || "";
 
-      const result =
+      const response =
         await model.generateContent(`
 You are LearnSphere AI Tutor.
 
@@ -213,9 +308,21 @@ Rules:
 - Give one small practice task
 `);
 
-      return result.response.text();
-    } catch {
-      return `Unable to contact Gemini. Please try again later.`;
+      const answer = response.response.text();
+
+      if (!hasText(answer)) {
+        return aiResult(
+          `Unable to contact Gemini. Please try again later.`,
+          buildMeta({ operation: 'tutor_chat', calledGemini: true, fallback: true, reason: 'empty_response' })
+        );
+      }
+
+      return aiResult(answer, buildMeta({ operation: 'tutor_chat', calledGemini: true }));
+    } catch (error) {
+      return aiResult(
+        `Unable to contact Gemini. Please try again later.`,
+        buildMeta({ operation: 'tutor_chat', calledGemini: true, fallback: true, reason: classifyGeminiError(error) })
+      );
     }
   },
 
@@ -240,6 +347,7 @@ Return STRICT JSON ONLY:
 
 Generate 5 MCQs.
 `,
-      fallbackQuiz(skill)
+      fallbackQuiz(skill),
+      'quiz_generation'
     ),
 };
