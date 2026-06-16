@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain } from 'lucide-react';
+import { Brain, Chrome } from 'lucide-react';
 import { useAuth } from '../../store/AuthContext';
 
 export default function Register() {
@@ -9,6 +9,7 @@ export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const googleUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -40,6 +41,10 @@ export default function Register() {
         <input className="focus-ring w-full rounded-lg border border-slate-200 px-4 py-3" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <button disabled={loading} className="focus-ring w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-60">{loading ? 'Creating...' : 'Create account'}</button>
       </form>
+      <a href={googleUrl} className="focus-ring mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 font-medium text-slate-700">
+        <Chrome size={18} />
+        Continue with Google
+      </a>
       <p className="mt-6 text-center text-sm text-slate-500">Already learning? <Link className="font-medium text-indigo-700" to="/login">Sign in</Link></p>
     </section>
   );

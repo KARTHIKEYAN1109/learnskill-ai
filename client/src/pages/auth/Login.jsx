@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Chrome } from 'lucide-react';
 import { useAuth } from '../../store/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const oauthError = searchParams.get('oauth');
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(oauthError === 'google_not_configured' ? 'Google login is not configured yet' : oauthError ? 'Google login failed. Please try again.' : '');
   const [loading, setLoading] = useState(false);
+  const googleUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -39,7 +42,7 @@ export default function Login() {
         <input className="focus-ring w-full rounded-lg border border-slate-200 px-4 py-3" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <button disabled={loading} className="focus-ring w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white disabled:opacity-60">{loading ? 'Signing in...' : 'Sign in'}</button>
       </form>
-      <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`} className="focus-ring mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 font-medium text-slate-700">
+      <a href={googleUrl} className="focus-ring mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 font-medium text-slate-700">
         <Chrome size={18} />
         Continue with Google
       </a>

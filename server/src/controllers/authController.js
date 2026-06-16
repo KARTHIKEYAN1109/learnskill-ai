@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Progress from '../models/Progress.js';
+import LearningPath from '../models/LearningPath.js';
+import UserNote from '../models/UserNote.js';
+import Bookmark from '../models/Bookmark.js';
+import TutorMessage from '../models/TutorMessage.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { clearRefreshCookie, hashToken, sendRefreshCookie, signAccessToken, signRefreshToken } from '../utils/tokenUtils.js';
@@ -69,8 +73,56 @@ export const me = asyncHandler(async (req, res) => {
   res.json({ user: req.user });
 });
 
+export const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { name: req.body.name },
+    { new: true, runValidators: true }
+  );
+
+  if (!user) throw new ApiError(404, 'User not found');
+  res.json({ user });
+});
+
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const user = await User.findById(req.user._id).select('+passwordHash');
+
+  if (!user) throw new ApiError(404, 'User not found');
+  if (user.provider !== 'local' || !user.passwordHash) {
+    throw new ApiError(400, 'Password changes are only available for email/password accounts');
+  }
+
+  const validPassword = await user.comparePassword(currentPassword);
+  if (!validPassword) throw new ApiError(401, 'Current password is incorrect');
+
+  user.passwordHash = newPassword;
+  user.tokenVersion += 1;
+  await user.save();
+
+  clearRefreshCookie(res);
+  res.json({ message: 'Password updated. Please sign in again.' });
+});
+
+export const deleteAccount = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  await Promise.all([
+    Progress.deleteMany({ user: userId }),
+    LearningPath.deleteMany({ user: userId }),
+    UserNote.deleteMany({ user: userId }),
+    Bookmark.deleteMany({ user: userId }),
+    TutorMessage.deleteMany({ user: userId })
+  ]);
+
+  await User.findByIdAndDelete(userId);
+  clearRefreshCookie(res);
+
+  res.json({ message: 'Account deleted' });
+});
+
 export const googleCallback = asyncHandler(async (req, res) => {
   const payload = await authPayload(req.user, res);
-  const redirect = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/oauth?token=${payload.accessToken}`;
+  const redirect = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/oauth?token=${encodeURIComponent(payload.accessToken)}`;
   res.redirect(redirect);
 });
