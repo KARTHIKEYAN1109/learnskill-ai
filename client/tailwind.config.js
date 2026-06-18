@@ -1,4 +1,7 @@
+import plugin from 'tailwindcss/plugin';
+
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
@@ -10,5 +13,10 @@ export default {
       }
     }
   },
-  plugins: []
+  plugins: [
+    plugin(function({ addVariant }) {
+      addVariant('light', '.light &');
+    })
+  ]
 };
+

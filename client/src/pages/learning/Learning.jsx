@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bookmark, Check, CheckCircle2, GraduationCap, Save, Send, Sparkles, StickyNote, Trash2, XCircle } from 'lucide-react';
+import { Bookmark, Check, CheckCircle2, GraduationCap, Save, Send, Sparkles, StickyNote, Trash2, XCircle, Video, ExternalLink } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import Skeleton from '../../components/Skeleton';
@@ -10,7 +10,7 @@ export default function Learning() {
   const navigate = useNavigate();
   const [path, setPath] = useState(null);
   const [progress, setProgress] = useState(null);
-  const [lessonState, setLessonState] = useState({ lesson: null, loading: true, bookmarked: false, cached: false, ai: null });
+  const [lessonState, setLessonState] = useState({ lesson: null, loading: true, bookmarked: false, cached: false, ai: null, resources: [] });
   const [quiz, setQuiz] = useState(null);
   const [quizMetadata, setQuizMetadata] = useState({ cached: false, ai: null });
   const [answers, setAnswers] = useState({});
@@ -41,7 +41,8 @@ export default function Learning() {
       loading: false,
       bookmarked: data.bookmarked,
       cached: data.cached,
-      ai: data.ai
+      ai: data.ai,
+      resources: data.resources
     }));
     learningApi.tutorHistory(skill).then(({ data }) => setChat(data.messages || [])).catch(() => {});
     setNote({ content: '', saved: '', loading: true, saving: false });
@@ -56,6 +57,7 @@ export default function Learning() {
   if (!path && !skill) return <EmptyState title="No active skill" copy="Generate a roadmap from your resume before starting lessons." to="/resume" action="Analyze resume" />;
   if (lessonState.loading) return <Skeleton className="h-[640px]" />;
   const lesson = lessonState.lesson;
+  const resources = lessonState.resources || [];
   const roadmap = path?.prioritySkills?.length ? path.prioritySkills : path?.missingSkills || [];
 
   const ask = async () => {
@@ -102,33 +104,33 @@ export default function Learning() {
   return (
     <div className="grid gap-6 xl:grid-cols-[260px_1fr_340px]">
       <aside className="page-band h-fit p-4">
-        <h2 className="px-2 text-sm font-semibold uppercase text-slate-500">Roadmap</h2>
+        <h2 className="px-2 text-sm font-semibold uppercase text-slate-500 light:text-slate-600 dark:text-slate-400">Roadmap</h2>
         <div className="mt-3 space-y-1">
-          {roadmap.map((item) => <Link key={item} to={`/learning/${encodeURIComponent(item)}`} className={`block rounded-lg px-3 py-3 text-sm font-medium ${item === skill ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}>{item}</Link>)}
+          {roadmap.map((item) => <Link key={item} to={`/learning/${encodeURIComponent(item)}`} className={`block rounded-lg px-3 py-3 text-sm font-medium ${item === skill ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400' : 'text-slate-600 light:text-slate-700 light:hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`}>{item}</Link>)}
         </div>
       </aside>
       <section className="space-y-6">
-        <article className="page-band p-6 lg:p-8">
+        <article className="page-band p-6 lg:p-8 text-slate-900 light:text-slate-900 dark:text-slate-100">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"><Sparkles size={16} /> AI Lesson</p>
+                <p className="inline-flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-3 py-1 text-sm font-medium text-blue-700 dark:text-blue-400"><Sparkles size={16} /> AI Lesson</p>
                 {lessonState.cached && (
-                  <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                     ⚡ Loaded from local cache
                   </span>
                 )}
               </div>
-              <h1 className="mt-4 text-3xl font-semibold">{lesson.title}</h1>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900 light:text-slate-950 dark:text-white">{lesson.title}</h1>
             </div>
-            <button onClick={() => learningApi.bookmark(lesson._id).then(({ data }) => setLessonState((s) => ({ ...s, bookmarked: data.bookmarked })))} className="focus-ring rounded-lg border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" title="Bookmark lesson">
+            <button onClick={() => learningApi.bookmark(lesson._id).then(({ data }) => setLessonState((s) => ({ ...s, bookmarked: data.bookmarked })))} className="focus-ring rounded-lg border border-slate-200 dark:border-slate-800 p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="Bookmark lesson">
               <Bookmark size={20} fill={lessonState.bookmarked ? 'currentColor' : 'none'} />
             </button>
           </div>
           {lessonState.ai?.fallback && (
             <div className="mt-4 space-y-3">
               {lessonState.ai.reason === 'rate_limited' && (
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 flex items-start gap-2 shadow-sm">
+                <div className="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30 p-4 text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2 shadow-sm">
                   <span className="text-base">⚠️</span>
                   <div>
                     <span className="font-semibold">AI System Busy:</span> Our AI system is receiving high traffic right now. Showing a study preview while we reconnect!
@@ -136,7 +138,7 @@ export default function Learning() {
                 </div>
               )}
               {(lessonState.ai.reason === 'missing_api_key' || lessonState.ai.reason === 'model_init_failed') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex items-start gap-2 shadow-sm">
+                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-200 flex items-start gap-2 shadow-sm">
                   <span className="text-base">🛠️</span>
                   <div>
                     <span className="font-semibold">Developer Alert:</span> Gemini API key is missing or model initialization failed. Serving local fallback content.
@@ -148,25 +150,55 @@ export default function Learning() {
           <LessonBlock title="Explanation" content={lesson.explanation} />
           <LessonBlock title="Example" content={lesson.example} />
           <LessonBlock title="Exercise" content={lesson.exercise} />
+
+          {resources && resources.length > 0 && (
+            <div className="mt-8 bg-[#11131e]/50 border border-slate-800 text-white p-6 rounded-xl backdrop-blur-md hover:border-purple-500/30 transition-all">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <span>📚</span> Supplementary Resources & Video Guides
+              </h3>
+              <div className="space-y-3">
+                {resources.map((res) => {
+                  const Icon = res.type === 'video' ? Video : ExternalLink;
+                  const iconColor = res.type === 'video' ? 'text-red-500' : 'text-purple-500';
+                  return (
+                    <a
+                      key={res.url}
+                      href={res.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between rounded-lg border border-slate-800/80 bg-slate-950/40 p-4 hover:border-purple-500/25 transition-all hover:bg-slate-950/60"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={iconColor} size={20} />
+                        <span className="font-medium text-slate-200">{res.title}</span>
+                      </div>
+                      <span className="text-xs text-slate-400">Open link</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={generateQuiz} className="focus-ring inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-semibold text-white"><GraduationCap size={18} /> Generate Quiz</button>
-            <button onClick={complete} className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-700"><Check size={18} /> Mark Complete</button>
-            {lesson.nextTopic && <Link to={`/learning/${encodeURIComponent(lesson.nextTopic)}`} className="focus-ring rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-700">Next Topic</Link>}
+            <button onClick={complete} className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-5 py-3 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"><Check size={18} /> Mark Complete</button>
+            {lesson.nextTopic && <Link to={`/learning/${encodeURIComponent(lesson.nextTopic)}`} className="focus-ring rounded-lg border border-slate-200 dark:border-slate-800 px-5 py-3 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Next Topic</Link>}
           </div>
         </article>
         {quiz && (
-          <section className="page-band p-6">
+          <section className="page-band p-6 text-slate-900 dark:text-slate-100">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-semibold">Quiz: {quiz.skill}</h2>
+                  <h2 className="text-xl font-semibold text-slate-900 light:text-slate-950 dark:text-white">Quiz: {quiz.skill}</h2>
                   {quizMetadata.cached && (
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                       ⚡ Loaded from local cache
                     </span>
                   )}
                 </div>
-                {quizResult && <p className="mt-1 text-sm text-slate-500">Answer review is ready. Revisit each question below.</p>}
+                {quizResult && <p className="mt-1 text-sm text-slate-500 light:text-slate-700 dark:text-slate-400">Answer review is ready. Revisit each question below.</p>}
               </div>
               {quizResult && (
                 <div className="rounded-lg bg-slate-950 px-5 py-3 text-white">
@@ -178,7 +210,7 @@ export default function Learning() {
             {quizMetadata.ai?.fallback && (
               <div className="mt-4 space-y-3">
                 {quizMetadata.ai.reason === 'rate_limited' && (
-                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 flex items-start gap-2 shadow-sm">
+                  <div className="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30 p-4 text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2 shadow-sm">
                     <span className="text-base">⚠️</span>
                     <div>
                       <span className="font-semibold">AI System Busy:</span> Our AI system is receiving high traffic right now. Showing a study preview while we reconnect!
@@ -186,7 +218,7 @@ export default function Learning() {
                   </div>
                 )}
                 {(quizMetadata.ai.reason === 'missing_api_key' || quizMetadata.ai.reason === 'model_init_failed') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex items-start gap-2 shadow-sm">
+                  <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-200 flex items-start gap-2 shadow-sm">
                     <span className="text-base">🛠️</span>
                     <div>
                       <span className="font-semibold">Developer Alert:</span> Gemini API key is missing or model initialization failed. Serving local fallback content.
@@ -197,13 +229,13 @@ export default function Learning() {
             )}
             <div className="mt-5 space-y-5">
               {quiz.questions.map((item, index) => (
-                <div key={item.question} className="rounded-lg border border-slate-200 p-4">
+                <div key={item.question} className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium">{index + 1}. {item.question}</p>
                     {quizResult && (
                       quizResult.answers[index] === item.answer
-                        ? <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700"><CheckCircle2 size={14} /> Correct</span>
-                        : <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><XCircle size={14} /> Review</span>
+                        ? <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 dark:bg-green-950/40 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300"><CheckCircle2 size={14} /> Correct</span>
+                        : <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-950/40 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300"><XCircle size={14} /> Review</span>
                     )}
                   </div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -213,12 +245,12 @@ export default function Learning() {
                       const isCorrectAnswer = quizResult && option === item.answer;
                       const isWrongAnswer = quizResult && submittedAnswer === option && option !== item.answer;
                       const optionClass = isCorrectAnswer
-                        ? 'border-green-300 bg-green-50 text-green-800'
+                        ? 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300'
                         : isWrongAnswer
-                          ? 'border-red-300 bg-red-50 text-red-800'
+                          ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'
                           : selected
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                            : 'border-slate-200';
+                            ? 'border-indigo-500 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300';
 
                       return (
                         <button key={option} disabled={Boolean(quizResult)} onClick={() => setAnswers({ ...answers, [index]: option })} className={`rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-default ${optionClass}`}>
@@ -228,7 +260,7 @@ export default function Learning() {
                     })}
                   </div>
                   {quizResult && (
-                    <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <div className="mt-4 rounded-lg bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-700 light:text-slate-800 dark:text-slate-300">
                       <p><span className="font-medium">Your answer:</span> {quizResult.answers[index] || 'No answer selected'}</p>
                       <p className="mt-1"><span className="font-medium">Correct answer:</span> {item.answer}</p>
                     </div>
@@ -239,19 +271,19 @@ export default function Learning() {
             <button onClick={submitQuiz} disabled={Boolean(quizResult)} className="focus-ring mt-5 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white disabled:opacity-60">{quizResult ? 'Quiz Submitted' : 'Submit Quiz'}</button>
           </section>
         )}
-        <section className="page-band p-6">
+        <section className="page-band p-6 text-slate-900 light:text-slate-900 dark:text-slate-100">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700"><StickyNote size={16} /> Notes</p>
-              <h2 className="mt-3 text-xl font-semibold">Your notes for {skill}</h2>
-              <p className="mt-1 text-sm text-slate-500">Capture examples, reminders, and questions while you learn.</p>
+              <p className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 text-sm font-medium text-indigo-700 dark:text-indigo-400"><StickyNote size={16} /> Notes</p>
+              <h2 className="mt-3 text-xl font-semibold text-slate-900 light:text-slate-950 dark:text-white">Your notes for {skill}</h2>
+              <p className="mt-1 text-sm text-slate-500 light:text-slate-700 dark:text-slate-400">Capture examples, reminders, and questions while you learn.</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => saveNote()} disabled={note.loading || note.saving || note.content === note.saved} className="focus-ring inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                 <Save size={16} />
                 {note.saving ? 'Saving...' : 'Save'}
               </button>
-              <button onClick={deleteNote} disabled={note.loading || note.saving || !note.saved} className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
+              <button onClick={deleteNote} disabled={note.loading || note.saving || !note.saved} className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50">
                 <Trash2 size={16} />
                 Delete
               </button>
@@ -263,16 +295,16 @@ export default function Learning() {
             disabled={note.loading}
             rows={7}
             placeholder={note.loading ? 'Loading notes...' : 'Write a note for this skill'}
-            className="focus-ring mt-5 w-full resize-y rounded-lg border border-slate-200 px-4 py-3 leading-6 text-slate-700 disabled:bg-slate-50"
+            className="focus-ring mt-5 w-full resize-y rounded-lg border border-slate-200 dark:border-purple-500/20 bg-white dark:bg-[#11131e]/80 px-4 py-3 leading-6 text-slate-700 light:text-slate-800 dark:text-slate-200 disabled:bg-slate-50 dark:disabled:bg-slate-900"
           />
-          <p className="mt-2 text-sm text-slate-500">{note.content === note.saved ? 'Saved' : 'Unsaved changes'}</p>
+          <p className="mt-2 text-sm text-slate-500 light:text-slate-600 dark:text-slate-400">{note.content === note.saved ? 'Saved' : 'Unsaved changes'}</p>
         </section>
       </section>
-      <aside className="page-band flex h-[720px] flex-col p-4">
-        <h2 className="px-2 text-sm font-semibold uppercase text-slate-500">AI Tutor</h2>
+      <aside className="page-band flex h-[720px] flex-col p-4 text-slate-900 light:text-slate-900 dark:text-slate-100">
+        <h2 className="px-2 text-sm font-semibold uppercase text-slate-500 light:text-slate-600 dark:text-slate-400">AI Tutor</h2>
         <div className="mt-3 flex-1 space-y-4 overflow-y-auto pr-1">
           {chat.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center rounded-lg bg-slate-50 p-6 text-center text-slate-600 border border-slate-200">
+            <div className="flex h-full flex-col items-center justify-center rounded-lg bg-white dark:bg-slate-900 p-6 text-center text-slate-600 light:text-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
               <span className="text-3xl mb-2">💬</span>
               <p className="text-sm font-medium leading-relaxed">
                 Have questions about this topic? Ask the AI Tutor anything below to get beginner-friendly explanations!
@@ -280,14 +312,14 @@ export default function Learning() {
             </div>
           ) : (
             chat.map((msg, index) => (
-              <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm leading-6 ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 border border-slate-200 bg-slate-50 text-slate-700'}`}>
+              <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm leading-6 ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 light:text-slate-800 dark:text-slate-300'}`}>
                 {msg.role === 'assistant' ? <TutorMessage content={msg.content} /> : <p className="whitespace-pre-line">{msg.content}</p>}
               </div>
             ))
           )}
         </div>
         <div className="mt-3 flex gap-2">
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && ask()} placeholder={`Ask about ${skill}`} className="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-3" />
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && ask()} placeholder={`Ask about ${skill}`} className="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 dark:border-purple-500/20 bg-white dark:bg-[#11131e]/80 px-3 py-3 text-slate-800 light:text-slate-900 dark:text-slate-200" />
           <button onClick={ask} className="focus-ring rounded-lg bg-indigo-600 p-3 text-white"><Send size={18} /></button>
         </div>
       </aside>
@@ -298,8 +330,8 @@ export default function Learning() {
 function LessonBlock({ title, content }) {
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">{content}</p>
+      <h2 className="text-lg font-semibold text-slate-900 light:text-slate-950 dark:text-white">{title}</h2>
+      <p className="mt-3 whitespace-pre-line leading-7 text-slate-700 light:text-slate-800 dark:text-slate-300">{content}</p>
     </section>
   );
 }
@@ -346,8 +378,8 @@ function TutorMessage({ content }) {
           return (
             <ol key={index} className="space-y-2">
               {block.items.map((item) => (
-                <li key={`${item.number}-${item.text}`} className={`grid grid-cols-[28px_1fr] gap-2 rounded-lg px-2 py-1.5 ${item.practice ? 'bg-amber-50 text-amber-900' : ''}`}>
-                  <span className={`grid h-6 w-6 place-items-center rounded-lg text-xs font-semibold ${item.practice ? 'bg-amber-200 text-amber-950' : 'bg-white text-slate-600'}`}>{item.number}</span>
+                <li key={`${item.number}-${item.text}`} className={`grid grid-cols-[28px_1fr] gap-2 rounded-lg px-2 py-1.5 ${item.practice ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200' : 'text-slate-700 light:text-slate-850 dark:text-slate-300'}`}>
+                  <span className={`grid h-6 w-6 place-items-center rounded-lg text-xs font-semibold ${item.practice ? 'bg-amber-200 dark:bg-amber-900/60 text-amber-900' : 'bg-white dark:bg-slate-800 text-slate-600 light:text-slate-800 dark:text-slate-400'}`}>{item.number}</span>
                   <span>{item.text}</span>
                 </li>
               ))}
@@ -356,10 +388,10 @@ function TutorMessage({ content }) {
         }
 
         if (block.type === 'practice') {
-          return <p key={index} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-medium text-amber-900">{block.text}</p>;
+          return <p key={index} className="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 font-medium text-amber-900 dark:text-amber-200">{block.text}</p>;
         }
 
-        return <p key={index} className="whitespace-pre-wrap">{block.text}</p>;
+        return <p key={index} className="whitespace-pre-wrap text-slate-700 light:text-slate-800 dark:text-slate-300">{block.text}</p>;
       })}
     </div>
   );

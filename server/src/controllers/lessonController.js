@@ -20,12 +20,25 @@ export const generateLesson = asyncHandler(async (req, res) => {
   }
 
   const bookmark = await Bookmark.findOne({ user: req.user._id, lesson: lesson._id });
-  res.json({ lesson, cached, bookmarked: Boolean(bookmark), ai });
+
+  const topicName = lesson.skill;
+  const resources = [
+    { title: "YouTube Video Guides", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(topicName)}+tutorial`, type: "video" },
+    { title: "Official Documentation Reference", url: `https://www.google.com/search?q=${encodeURIComponent(topicName)}+official+documentation`, type: "docs" }
+  ];
+
+  res.json({ lesson, cached, bookmarked: Boolean(bookmark), ai, resources });
 });
 
 export const getLesson = asyncHandler(async (req, res) => {
   const lesson = await Lesson.findById(req.params.id);
   if (!lesson) throw new ApiError(404, 'Lesson not found');
 
-  res.json({ lesson });
+  const topicName = lesson.skill;
+  const resources = [
+    { title: "YouTube Video Guides", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(topicName)}+tutorial`, type: "video" },
+    { title: "Official Documentation Reference", url: `https://www.google.com/search?q=${encodeURIComponent(topicName)}+official+documentation`, type: "docs" }
+  ];
+
+  res.json({ lesson, resources });
 });
