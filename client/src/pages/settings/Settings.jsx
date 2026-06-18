@@ -78,12 +78,20 @@ export default function Settings() {
     <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
       <section className="space-y-6">
         <div className="page-band p-6">
-          <img src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Student')}&background=4f46e5&color=fff`} alt="" className="h-20 w-20 rounded-full" />
+          <img
+            src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Student')}&background=4f46e5&color=fff`}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Student')}&background=4f46e5&color=fff`;
+            }}
+            alt=""
+            className="h-20 w-20 rounded-full"
+          />
           <h1 className="mt-4 text-2xl font-semibold">{user?.name}</h1>
           <p className="text-slate-500">{user?.email}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">{user?.role}</span>
-            <span className="inline-flex rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">{isGoogleAccount ? 'Google OAuth' : 'Email/Password'}</span>
+            <span className="inline-flex rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700">{user?.role}</span>
+            <span className="inline-flex rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">{isGoogleAccount ? 'Google OAuth' : 'Email/Password'}</span>
           </div>
         </div>
         <SettingsSummary icon={ShieldCheck} title="Account Provider" copy={isGoogleAccount ? 'This account signs in through Google OAuth.' : 'This account uses email and password authentication.'} />

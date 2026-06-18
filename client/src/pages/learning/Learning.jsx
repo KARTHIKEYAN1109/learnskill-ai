@@ -10,8 +10,9 @@ export default function Learning() {
   const navigate = useNavigate();
   const [path, setPath] = useState(null);
   const [progress, setProgress] = useState(null);
-  const [lessonState, setLessonState] = useState({ lesson: null, loading: true, bookmarked: false });
+  const [lessonState, setLessonState] = useState({ lesson: null, loading: true, bookmarked: false, cached: false, ai: null });
   const [quiz, setQuiz] = useState(null);
+  const [quizMetadata, setQuizMetadata] = useState({ cached: false, ai: null });
   const [answers, setAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
   const [chat, setChat] = useState([]);
@@ -32,9 +33,16 @@ export default function Learning() {
     if (!skill) return;
     setLessonState((current) => ({ ...current, loading: true }));
     setQuiz(null);
+    setQuizMetadata({ cached: false, ai: null });
     setAnswers({});
     setQuizResult(null);
-    learningApi.lesson(skill).then(({ data }) => setLessonState({ lesson: data.lesson, loading: false, bookmarked: data.bookmarked }));
+    learningApi.lesson(skill).then(({ data }) => setLessonState({
+      lesson: data.lesson,
+      loading: false,
+      bookmarked: data.bookmarked,
+      cached: data.cached,
+      ai: data.ai
+    }));
     learningApi.tutorHistory(skill).then(({ data }) => setChat(data.messages || [])).catch(() => {});
     setNote({ content: '', saved: '', loading: true, saving: false });
     learningApi.getNote(skill)
@@ -62,6 +70,7 @@ export default function Learning() {
   const generateQuiz = async () => {
     const { data } = await learningApi.quiz(skill);
     setQuiz(data.quiz);
+    setQuizMetadata({ cached: data.cached, ai: data.ai });
     setAnswers({});
     setQuizResult(null);
   };
@@ -102,13 +111,40 @@ export default function Learning() {
         <article className="page-band p-6 lg:p-8">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"><Sparkles size={16} /> AI Lesson</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"><Sparkles size={16} /> AI Lesson</p>
+                {lessonState.cached && (
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                    ⚡ Loaded from local cache
+                  </span>
+                )}
+              </div>
               <h1 className="mt-4 text-3xl font-semibold">{lesson.title}</h1>
             </div>
             <button onClick={() => learningApi.bookmark(lesson._id).then(({ data }) => setLessonState((s) => ({ ...s, bookmarked: data.bookmarked })))} className="focus-ring rounded-lg border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" title="Bookmark lesson">
               <Bookmark size={20} fill={lessonState.bookmarked ? 'currentColor' : 'none'} />
             </button>
           </div>
+          {lessonState.ai?.fallback && (
+            <div className="mt-4 space-y-3">
+              {lessonState.ai.reason === 'rate_limited' && (
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 flex items-start gap-2 shadow-sm">
+                  <span className="text-base">⚠️</span>
+                  <div>
+                    <span className="font-semibold">AI System Busy:</span> Our AI system is receiving high traffic right now. Showing a study preview while we reconnect!
+                  </div>
+                </div>
+              )}
+              {(lessonState.ai.reason === 'missing_api_key' || lessonState.ai.reason === 'model_init_failed') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex items-start gap-2 shadow-sm">
+                  <span className="text-base">🛠️</span>
+                  <div>
+                    <span className="font-semibold">Developer Alert:</span> Gemini API key is missing or model initialization failed. Serving local fallback content.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <LessonBlock title="Explanation" content={lesson.explanation} />
           <LessonBlock title="Example" content={lesson.example} />
           <LessonBlock title="Exercise" content={lesson.exercise} />
@@ -122,7 +158,14 @@ export default function Learning() {
           <section className="page-band p-6">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
               <div>
-                <h2 className="text-xl font-semibold">Quiz: {quiz.skill}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-semibold">Quiz: {quiz.skill}</h2>
+                  {quizMetadata.cached && (
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                      ⚡ Loaded from local cache
+                    </span>
+                  )}
+                </div>
                 {quizResult && <p className="mt-1 text-sm text-slate-500">Answer review is ready. Revisit each question below.</p>}
               </div>
               {quizResult && (
@@ -132,6 +175,26 @@ export default function Learning() {
                 </div>
               )}
             </div>
+            {quizMetadata.ai?.fallback && (
+              <div className="mt-4 space-y-3">
+                {quizMetadata.ai.reason === 'rate_limited' && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 flex items-start gap-2 shadow-sm">
+                    <span className="text-base">⚠️</span>
+                    <div>
+                      <span className="font-semibold">AI System Busy:</span> Our AI system is receiving high traffic right now. Showing a study preview while we reconnect!
+                    </div>
+                  </div>
+                )}
+                {(quizMetadata.ai.reason === 'missing_api_key' || quizMetadata.ai.reason === 'model_init_failed') && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex items-start gap-2 shadow-sm">
+                    <span className="text-base">🛠️</span>
+                    <div>
+                      <span className="font-semibold">Developer Alert:</span> Gemini API key is missing or model initialization failed. Serving local fallback content.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="mt-5 space-y-5">
               {quiz.questions.map((item, index) => (
                 <div key={item.question} className="rounded-lg border border-slate-200 p-4">
@@ -208,11 +271,20 @@ export default function Learning() {
       <aside className="page-band flex h-[720px] flex-col p-4">
         <h2 className="px-2 text-sm font-semibold uppercase text-slate-500">AI Tutor</h2>
         <div className="mt-3 flex-1 space-y-4 overflow-y-auto pr-1">
-          {chat.map((msg, index) => (
-            <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm leading-6 ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 border border-slate-200 bg-slate-50 text-slate-700'}`}>
-              {msg.role === 'assistant' ? <TutorMessage content={msg.content} /> : <p className="whitespace-pre-line">{msg.content}</p>}
+          {chat.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center rounded-lg bg-slate-50 p-6 text-center text-slate-600 border border-slate-200">
+              <span className="text-3xl mb-2">💬</span>
+              <p className="text-sm font-medium leading-relaxed">
+                Have questions about this topic? Ask the AI Tutor anything below to get beginner-friendly explanations!
+              </p>
             </div>
-          ))}
+          ) : (
+            chat.map((msg, index) => (
+              <div key={`${msg.createdAt || index}-${msg.role}`} className={`rounded-lg px-4 py-3 text-sm leading-6 ${msg.role === 'user' ? 'ml-8 bg-indigo-600 text-white' : 'mr-8 border border-slate-200 bg-slate-50 text-slate-700'}`}>
+                {msg.role === 'assistant' ? <TutorMessage content={msg.content} /> : <p className="whitespace-pre-line">{msg.content}</p>}
+              </div>
+            ))
+          )}
         </div>
         <div className="mt-3 flex gap-2">
           <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && ask()} placeholder={`Ask about ${skill}`} className="focus-ring min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-3" />

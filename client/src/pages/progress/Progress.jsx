@@ -1,5 +1,5 @@
 import { Award, BarChart3, Flame, Target, Trophy } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import Skeleton from '../../components/Skeleton';
 import StatCard from '../../components/StatCard';
@@ -14,6 +14,15 @@ export default function Progress() {
 
   if (loading) return <Skeleton className="h-96" />;
   if (!data) return <EmptyState title="Progress starts with a lesson" copy="Complete a lesson or quiz to see analytics here." to="/roadmap" action="View roadmap" />;
+
+  const isEmpty = !data.quizScores || data.quizScores.length === 0;
+  const chartData = isEmpty ? [
+    { skill: 'Quiz 1', accuracy: 0 },
+    { skill: 'Quiz 2', accuracy: 0 },
+    { skill: 'Quiz 3', accuracy: 0 },
+    { skill: 'Quiz 4', accuracy: 0 },
+    { skill: 'Quiz 5', accuracy: 0 }
+  ] : data.quizScores;
 
   return (
     <div className="space-y-6">
@@ -31,13 +40,21 @@ export default function Progress() {
           </div>
           <BarChart3 className="text-indigo-600" />
         </div>
-        <div className="mt-6 h-72">
+        <div className="relative mt-6 h-72">
+          {isEmpty && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/30 backdrop-blur-[0.5px] z-10 pointer-events-none">
+              <p className="text-sm font-medium text-slate-500 text-center px-4">
+                Start completing lessons and quizzes to map your progress graph!
+              </p>
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.quizScores || []}>
+            <BarChart data={chartData}>
+              <CartesianGrid stroke="currentColor" className="text-slate-100" strokeDasharray="3 3" />
               <XAxis dataKey="skill" />
-              <YAxis />
+              <YAxis domain={[0, 100]} />
               <Tooltip />
-              <Bar dataKey="accuracy" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+              {!isEmpty && <Bar dataKey="accuracy" fill="#4f46e5" radius={[6, 6, 0, 0]} />}
             </BarChart>
           </ResponsiveContainer>
         </div>
