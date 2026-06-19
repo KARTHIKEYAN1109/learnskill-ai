@@ -38,7 +38,8 @@ app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 250,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/auth/google')
 }));
 
 app.get('/api/health', (_req, res) => {
