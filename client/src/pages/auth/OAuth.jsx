@@ -12,16 +12,21 @@ export default function OAuth() {
   useEffect(() => {
     const completeOAuth = async () => {
       const error = params.get('error');
-      const token = params.get('token');
+      let token = params.get('token');
 
-      if (error || !token) {
-        navigate(`/login?oauth=${encodeURIComponent(error || 'missing_token')}`, { replace: true });
+      if (error) {
+        navigate(`/login?oauth=${encodeURIComponent(error)}`, { replace: true });
         return;
       }
 
-      localStorage.setItem('learnsphere_token', token);
-
       try {
+        if (!token) {
+          const refreshRes = await authApi.refresh();
+          token = refreshRes.data.accessToken;
+        }
+
+        localStorage.setItem('learnsphere_token', token);
+
         const { data } = await authApi.me();
         setUser(data.user);
         navigate('/', { replace: true });

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const lessonSchema = new mongoose.Schema({
-  skill: { type: String, required: true, trim: true, index: true },
+  skill: { type: String, required: true, trim: true },
   title: { type: String, required: true },
   explanation: { type: String, required: true },
   example: { type: String, required: true },

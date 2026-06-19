@@ -9,7 +9,9 @@ export default [
       sourceType: 'module',
       globals: {
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        global: 'readonly',
+        setTimeout: 'readonly'
       }
     },
     rules: {

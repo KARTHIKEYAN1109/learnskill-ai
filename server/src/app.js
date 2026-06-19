@@ -21,6 +21,8 @@ import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 const clientOrigin = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : 'http://localhost:5173';
 app.use(cors({

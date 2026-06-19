@@ -7,7 +7,7 @@ const questionSchema = new mongoose.Schema({
 }, { _id: false });
 
 const quizSchema = new mongoose.Schema({
-  skill: { type: String, required: true, trim: true, index: true },
+  skill: { type: String, required: true, trim: true },
   questions: [questionSchema]
 }, { timestamps: true });
 

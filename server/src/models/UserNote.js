@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const userNoteSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   skill: { type: String, required: true },
   content: { type: String, default: '' }
 }, { timestamps: true });

@@ -122,7 +122,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
 });
 
 export const googleCallback = asyncHandler(async (req, res) => {
-  const payload = await authPayload(req.user, res);
-  const redirect = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/oauth?token=${encodeURIComponent(payload.accessToken)}`;
+  await authPayload(req.user, res);
+  const redirect = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/oauth`;
   res.redirect(redirect);
 });

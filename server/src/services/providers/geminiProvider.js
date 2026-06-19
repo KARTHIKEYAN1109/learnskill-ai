@@ -2,7 +2,7 @@ import '../../config/env.js';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { parseJsonFromText } from "../../utils/jsonUtils.js";
 
-const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
+const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-1.5-flash";
 
 const buildMeta = ({ calledGemini = false, fallback = false, operation, reason = null } = {}) => ({
   provider: 'gemini',

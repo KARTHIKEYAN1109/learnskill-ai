@@ -16,7 +16,16 @@ export const generateLesson = asyncHandler(async (req, res) => {
     const generated = await aiService.generateLesson(skill);
     const lessonData = generated.data;
     ai = generated.ai;
-    lesson = await Lesson.create({ skill, ...lessonData });
+    try {
+      lesson = await Lesson.create({ skill, ...lessonData });
+    } catch (error) {
+      if (error.code === 11000) {
+        lesson = await Lesson.findOne({ skill: new RegExp(`^${escapeRegex(skill)}$`, 'i') });
+        cached = true;
+      } else {
+        throw error;
+      }
+    }
   }
 
   const bookmark = await Bookmark.findOne({ user: req.user._id, lesson: lesson._id });
