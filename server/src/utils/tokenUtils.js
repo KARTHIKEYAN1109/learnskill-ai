@@ -1,10 +1,15 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+const isProductionEnv = () => {
+  return process.env.NODE_ENV === 'production' || 
+         (process.env.CLIENT_URL && process.env.CLIENT_URL.startsWith('https://'));
+};
+
 const refreshCookieOptions = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: isProductionEnv(),
+  sameSite: isProductionEnv() ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000
 });
 
