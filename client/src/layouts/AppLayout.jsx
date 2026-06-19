@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, Bookmark, BookOpen, Brain, ChartNoAxesCombined, FileText, LayoutDashboard, LogOut, Map, Moon, Settings, Shield, Sparkles, Sun } from 'lucide-react';
+import { Bell, Bookmark, BookOpen, ChartNoAxesCombined, FileText, LayoutDashboard, LogOut, Map, Moon, Settings, Shield, Sparkles, Sun } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 
@@ -19,7 +19,7 @@ export default function AppLayout() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const [theme, setTheme] = useState('dark');
+  const [theme] = useState('dark');
 
   useEffect(() => {
     const root = document.documentElement;

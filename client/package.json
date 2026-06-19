@@ -6,7 +6,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .jsx,.js"
+    "lint": "eslint src"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.0.2",
